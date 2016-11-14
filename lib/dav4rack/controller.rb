@@ -186,21 +186,22 @@ module DAV4Rack
       unless(resource.exist?)
         NotFound
       else
-        unless(request_document.xpath("//#{ns}propfind/#{ns}allprop").empty?)
+        if request.body.empty?
+          # Fix for windows 7 that sends empty request body. Just treat it as allprop request
           properties = resource.properties
-        else
+        elsif (request_document.xpath("//#{ns}propfind/#{ns}allprop").empty?)
           check = request_document.xpath("//#{ns}propfind")
-          if(check && !check.empty?)
+          if (check && !check.empty?)
             properties = request_document.xpath(
-              "//#{ns}propfind/#{ns}prop"
-            ).children.find_all{ |item|
+                "//#{ns}propfind/#{ns}prop"
+            ).children.find_all { |item|
               item.element?
-            }.map{ |item|
+            }.map { |item|
               # We should do this, but Nokogiri transforms prefix w/ null href into
               # something valid.  Oops.
               # TODO: Hacky grep fix that's horrible
               hsh = to_element_hash(item)
-              if(hsh.namespace.nil? && !ns.empty?)
+              if (hsh.namespace.nil? && !ns.empty?)
                 raise BadRequest if request_document.to_s.scan(%r{<#{item.name}[^>]+xmlns=""}).empty?
               end
               hsh
@@ -208,6 +209,8 @@ module DAV4Rack
           else
             raise BadRequest
           end
+        else
+          properties = resource.properties
         end
         multistatus do |xml|
           find_resources.each do |resource|
