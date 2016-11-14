@@ -186,7 +186,7 @@ module DAV4Rack
       unless(resource.exist?)
         NotFound
       else
-        if request.body.empty?
+        if request.body.read == nil
           # Fix for windows 7 that sends empty request body. Just treat it as allprop request
           properties = resource.properties
         elsif (request_document.xpath("//#{ns}propfind/#{ns}allprop").empty?)
